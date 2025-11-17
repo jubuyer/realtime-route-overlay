@@ -61,8 +61,32 @@ class Downloader:
         print(f"\nExtracting {zip_path} -> {extract_to}")
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(extract_to)
-        print("Extraction completed. Removing zip file.")
-        zip_path.unlink()
+        print("Extraction completed")
+        # zip_path.unlink()
+
+    def download_and_extract_calib(self, date, kitti_raw_dir):
+        """
+        Download and extract calibration zip for a given date
+        """
+        calib_url = f"https://s3.eu-central-1.amazonaws.com/avg-kitti/raw_data/{date}_calib.zip"
+        zip_path = kitti_raw_dir / f"{date}_calib.zip"
+        date_dir = kitti_raw_dir / date
+        date_dir.mkdir(parents=True, exist_ok=True)
+
+        # Download calibration zip
+        if not zip_path.exists():
+            print(f"Downloading calibration: {calib_url}")
+            with requests.get(calib_url, stream=True) as r:
+                r.raise_for_status()
+                with open(zip_path, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
+
+        # Extract calibration files
+        print(f"Extracting calibration zip: {zip_path}")
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(kitti_raw_dir)
+        # zip_path.unlink()
 
     def run(self):
         """Download and extract all files"""
@@ -102,6 +126,16 @@ def main():
 
     downloader = Downloader(kitti_urls, DOWNLOADS_DIR)
     downloader.run()
+
+    dates = [
+        "2011_09_26",
+        "2011_09_29",
+        "2011_09_30",
+        "2011_10_03"
+    ]
+
+    for date in dates:
+        downloader.download_and_extract_calib(date, KITTI_RAW_DIR)
 
     print(f"\nDownloaded datasets saved to: {DATASETS_ROOT}")
 
