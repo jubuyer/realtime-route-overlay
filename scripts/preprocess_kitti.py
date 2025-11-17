@@ -54,6 +54,7 @@ class KITTIRoadParser:
         """
         mask = cv2.imread(str(mask_path))
         if mask is None:
+            print(f"Warning: Unable to read mask {mask_path}")
             return None
         
         # Convert to binary road mask
@@ -108,6 +109,10 @@ class KITTIRoadParser:
             print(f"Warning: {img_dir} does not exist")
             return
         
+        if split == 'train' and (mask_dir is None or not mask_dir.exists()):
+            print(f"Warning: {mask_dir} does not exist")
+            return
+        
         # Get all images
         img_files = sorted(list(img_dir.glob("*.png")))
         
@@ -142,13 +147,19 @@ class KITTIRoadParser:
             img_name = img_path.name
             out_img_path = out_img_dir / img_name
             cv2.imwrite(str(out_img_path), img)
-            
+                        
             # Process mask if available
             if mask_dir:
-                mask_files = list(mask_dir.glob(f"*{img_path.stem}*.png"))
-                
-                if mask_files:
-                    mask_path = mask_files[0]
+                parts = img_path.stem.split("_")
+
+                if len(parts) == 2:
+                    category, frame = parts
+                    road_mask_name = f"{category}_road_{frame}.png"
+                    mask_path = mask_dir / road_mask_name
+                else:
+                    mask_path = None
+
+                if mask_path and mask_path.exists():
                     road_mask = self.parse_road_mask(mask_path)
                     
                     if road_mask is not None:
@@ -213,7 +224,8 @@ class KITTIRawParser:
             if date_dir.is_dir() and date_dir.name.startswith('2011'):
                 for drive_dir in date_dir.iterdir():
                     if drive_dir.is_dir() and 'sync' in drive_dir.name:
-                        drives.append((date_dir.name, drive_dir.name))
+                        drive_number = drive_dir.name.split('_')[4]
+                        drives.append((date_dir.name, drive_number))
         
         return drives
     
