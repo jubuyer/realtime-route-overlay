@@ -117,7 +117,7 @@ def process_sequence(seq_list, img_out_dir, label_out_dir):
             mask_resized = mask_letterbox(mask, new_w, new_h, left, top)
 
             # Polygons
-            polys = mask_to_yolo_polygons((mask_resized > 128).astype(np.uint8))
+            polys = mask_to_yolo_polygons((mask_resized >= 1).astype(np.uint8))
 
             # Save image
             out_img_name = f"{seq}_{frame}"
