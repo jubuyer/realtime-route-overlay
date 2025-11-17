@@ -4,9 +4,12 @@ import numpy as np
 from tqdm import tqdm
 from pathlib import Path
 import math
+from pathlib import Path
 
-DAVIS_ROOT = "datasets/davis/DAVIS"
-OUTPUT_ROOT = "datasets/processed/davis"
+# Define paths
+ROOT = Path(__file__).resolve().parent.parent
+DAVIS_ROOT = ROOT / "datasets/davis/DAVIS"
+OUTPUT_ROOT = ROOT / "datasets/processed/davis"
 
 IMG_INPUT = f"{DAVIS_ROOT}/JPEGImages/480p"
 MASK_INPUT = f"{DAVIS_ROOT}/Annotations/480p"
