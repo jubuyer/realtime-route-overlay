@@ -69,7 +69,7 @@ class Downloader:
         Download and extract calibration zip for a given date
         """
         calib_url = f"https://s3.eu-central-1.amazonaws.com/avg-kitti/raw_data/{date}_calib.zip"
-        zip_path = kitti_raw_dir / f"{date}_calib.zip"
+        zip_path = DOWNLOADS_DIR / f"{date}_calib.zip"
         date_dir = kitti_raw_dir / date
         date_dir.mkdir(parents=True, exist_ok=True)
 
