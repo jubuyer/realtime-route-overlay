@@ -15,7 +15,7 @@ Processes KITTI Raw and Road datasets for road segmentation and GPS alignment
 ROOT = Path(__file__).resolve().parent.parent
 DATASETS_ROOT = ROOT / "datasets"
 KITTI_RAW_DIR = DATASETS_ROOT / "kitti_raw"
-KITTI_ROAD_DIR = DATASETS_ROOT / "kitti_road"
+KITTI_ROAD_DIR = DATASETS_ROOT / "kitti_road" / "data_road"
 PROCESSED_DIR = DATASETS_ROOT / "processed" / "kitti"
 
 # Output directories
@@ -386,11 +386,6 @@ def main():
     print("Processing Complete!")
     print("="*60)
     print(f"\nProcessed data location: {PROCESSED_DIR}")
-    print(f"GPS data location: {GPS_DATA_DIR}")
-    print("\nNext steps:")
-    print("1. Train YOLOv8 on processed road data: python train_yolov8_kitti.py")
-    print("2. Run map overlay demo: python map_overlay_demo.py")
-
 
 if __name__ == "__main__":
     main()
