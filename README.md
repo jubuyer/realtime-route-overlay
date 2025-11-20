@@ -35,3 +35,10 @@ pip install -r configs/requirements.txt
 
 # setup wandb
 wandb login
+```
+
+### Set Up Project
+**Fetching and Processing Data**
+After setting up the envrionment above, go to `notebooks/01_download_datasets.ipynb` and select the correct kernel (the conda environment we set up).
+
+Run every cell to download the data. You can optionally preview some images with the last cell. `datasets/*` are included in `/gitignore` so downloading the data should not be pushed upstream. 
