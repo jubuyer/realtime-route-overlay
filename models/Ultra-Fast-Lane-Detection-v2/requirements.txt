@@ -2,7 +2,8 @@ opencv-python
 tqdm
 tensorboard
 addict
-sklearn
+scikit-learn
 pathspec
 imagesize
 ujson
+# merged to env.yml
