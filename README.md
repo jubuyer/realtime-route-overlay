@@ -80,4 +80,4 @@ data/tusimple/
 - `tusimple_res34.pth` - ResNet-34 backbone (more accurate, ~21M parameters)
 
 **Download:**
-Models are already included in `models/Ultra-Fast-Lane-Detection-v2/weights/`
+Model weights are available for download on the [model repo](https://github.com/cfzd/Ultra-Fast-Lane-Detection-v2) under trained model section.
