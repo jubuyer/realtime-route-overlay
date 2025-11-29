@@ -1,5 +1,5 @@
 dataset= 'Tusimple'
-data_root = './datasets/tusimple'
+data_root= '' # Need to be modified before running
 epoch= 100
 batch_size= 32
 optimizer= 'SGD'
@@ -17,7 +17,7 @@ use_aux= False
 sim_loss_w= 0.0
 shp_loss_w= 0.0
 note= ''
-log_path = './logs'
+log_path= ''
 finetune= None
 resume= None
 test_model= ''
