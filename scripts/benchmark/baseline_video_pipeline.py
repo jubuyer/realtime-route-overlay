@@ -18,6 +18,7 @@ from collections import deque
 from pathlib import Path
 import socket
 import platform
+import wandb
 
 # set root to repo of lane detection
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -295,7 +296,6 @@ def save_benchmark_results(results, output_path):
     json_path = str(Path(output_path).with_suffix('.json'))
     meta = {
         'timestamp': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()),
-        'hostname': socket.gethostname(),
         'platform': platform.platform(),
         'python_version': platform.python_version(),
         'torch_version': torch.__version__,
@@ -326,6 +326,24 @@ def run_benchmark(args, model, loader, video_writer=None):
         process = None
 
     print("Processing frames...")
+
+    if args.use_wandb:
+        wandb.init(
+            project=args.wandb_project,
+            group='cpu-baseline',
+            name=args.run_name,
+            config={
+                "device": "cpu",
+                "video_path": args.video,
+                "model": "UFLDv2",
+                "backbone": cfg.backbone,
+                "train_height": cfg.train_height,
+                "train_width": cfg.train_width,
+                "crop_ratio": cfg.crop_ratio,
+                "num_row": cfg.num_row,
+                "num_col": cfg.num_col,
+            },
+        )
 
     max_frames_arg = args.max_frames if args.max_frames else None
     warmup = max(0, args.warmup_frames)
@@ -369,10 +387,22 @@ def run_benchmark(args, model, loader, video_writer=None):
         postprocess_times.append(t_postprocess_end - t_postprocess_start)
 
         t_frame_end = time.perf_counter()
-        frame_times.append(t_frame_end - t_frame_start)
+        total_time = t_frame_end - t_frame_start
+        frame_times.append(total_time)
 
         if process is not None:
             memory_samples.append(process.memory_info().rss / 1024.0 / 1024.0)
+
+        if args.use_wandb and frames_timed % max(1, args.wandb_log_interval) == 0:
+            wandb.log({
+                "frame_idx": frames_timed,
+                "preprocess_time_ms": loader.metrics['preprocess_times'][-1] * 1000 if loader.metrics['preprocess_times'] else 0.0,
+                "inference_time_ms": inference_times[-1] * 1000,
+                "postprocess_time_ms": postprocess_times[-1] * 1000,
+                "total_time_ms": total_time * 1000,
+                "fps": (1.0 / total_time) if total_time > 0 else 0.0,
+                "cpu_memory_mb": memory_samples[-1] if memory_samples else 0.0,
+            })
 
         frames_timed += 1
 
@@ -427,12 +457,28 @@ def run_benchmark(args, model, loader, video_writer=None):
         if key.strip():
             print(f"{key}: {value}")
 
-    benchmark_output_path = _resolve_path(args.benchmark_output)
+    # add date stamp to results filename to avoid overwrite
+    date_stamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
+    out_path = Path(_resolve_path(args.benchmark_output))
+    benchmark_output_path = str(out_path.with_name(f"{out_path.stem}_{date_stamp}{out_path.suffix}"))
     save_benchmark_results(results, benchmark_output_path)
     print(f"\nBenchmark results saved to: {benchmark_output_path}")
 
     if args.output_video:
         print(f"Output video saved to: {args.output_video}")
+
+    if args.use_wandb:
+        wandb.log({
+            "summary/total_frames": frames_timed,
+            "summary/video_fps": loader.fps,
+            "summary/load_mean_ms": load_mean * 1000,
+            "summary/preprocess_mean_ms": preprocess_mean * 1000,
+            "summary/inference_mean_ms": inference_mean * 1000,
+            "summary/postprocess_mean_ms": postprocess_mean * 1000,
+            "summary/frame_mean_ms": frame_mean * 1000,
+            "summary/fps": frame_fps,
+        })
+        wandb.finish()
 
     return results
 
@@ -452,6 +498,10 @@ def main():
                         help='Path to save benchmark results')
     parser.add_argument('--warmup-frames', type=int, default=3,
                         help='Number of warm-up frames to skip from timing')
+    parser.add_argument('--use-wandb', action='store_true', help='Enable Weights & Biases logging')
+    parser.add_argument('--wandb-project', type=str, default='route-overlay-optimization', help='WandB project name')
+    parser.add_argument('--run-name', type=str, default=None, help='WandB run name')
+    parser.add_argument('--wandb-log-interval', type=int, default=10, help='Log every N frames')
     
     args = parser.parse_args()
     
@@ -475,6 +525,10 @@ def main():
     if args.output_video:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         video_writer = cv2.VideoWriter(args.output_video, fourcc, loader.fps, (800, 320))
+
+    if args.use_wandb and not args.run_name:
+        base = Path(args.video).stem
+        args.run_name = f"cpu-baseline-{base}-{time.strftime('%Y%m%d_%H%M%S', time.localtime())}"
     
     run_benchmark(args, model, loader, video_writer)
 
