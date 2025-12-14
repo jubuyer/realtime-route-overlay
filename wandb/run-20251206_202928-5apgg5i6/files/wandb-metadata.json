@@ -1,0 +1,50 @@
+{
+  "os": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "python": "CPython 3.10.19",
+  "startedAt": "2025-12-07T01:29:28.468231Z",
+  "args": [
+    "--video",
+    "datasets/kitti_raw/2011_10_03/2011_10_03_drive_0042_sync/drive_0042_sync.mp4",
+    "--num-workers",
+    "2",
+    "--use-wandb",
+    "--wandb-project",
+    "ufldv2-optimization",
+    "--run-name",
+    "gpu-opt-drive_0042_sync-workers2-20251206_202921"
+  ],
+  "program": "/home/jubuyer/realtime-route-overlay/scripts/benchmark/optimized_video_pipeline.py",
+  "codePath": "scripts/benchmark/optimized_video_pipeline.py",
+  "codePathLocal": "scripts/benchmark/optimized_video_pipeline.py",
+  "git": {
+    "remote": "git@github.com:jubuyer/realtime-route-overlay.git",
+    "commit": "d8b329232b28fb069c9c05f67778b80a35e3273a"
+  },
+  "email": "hpmlcoms6998@gmail.com",
+  "root": "/home/jubuyer/realtime-route-overlay",
+  "host": "JubPC",
+  "executable": "/home/jubuyer/miniconda3/envs/motiondet/bin/python3",
+  "cpu_count": 6,
+  "cpu_count_logical": 12,
+  "gpu": "NVIDIA GeForce RTX 3060 Ti",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "1081101176832",
+      "used": "112663228416"
+    }
+  },
+  "memory": {
+    "total": "16730238976"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GeForce RTX 3060 Ti",
+      "memoryTotal": "8589934592",
+      "architecture": "Ampere",
+      "uuid": "GPU-bfd41125-dc5d-5a3e-a005-11f2e90eb15e"
+    }
+  ],
+  "cudaVersion": "13.0",
+  "writerId": "py3c1rlk1f5thd569opktl30hy38as6p"
+}

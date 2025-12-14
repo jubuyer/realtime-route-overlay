@@ -1,0 +1,96 @@
+_wandb:
+    value:
+        cli_version: 0.23.0
+        e:
+            8cr4wyovtepr1s8t3ltvxca3g50a8df1:
+                args:
+                    - --video
+                    - datasets/kitti_raw/2011_09_26/2011_09_26_drive_0052_sync/drive_0052_sync.mp4
+                    - --num-workers
+                    - "0"
+                    - --use-wandb
+                    - --wandb-project
+                    - ufldv2-optimization
+                    - --run-name
+                    - gpu-opt-drive_0052_sync-workers0-20251206_202748
+                codePath: scripts/benchmark/optimized_video_pipeline.py
+                codePathLocal: scripts/benchmark/optimized_video_pipeline.py
+                cpu_count: 6
+                cpu_count_logical: 12
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "1081101176832"
+                        used: "112662478848"
+                email: hpmlcoms6998@gmail.com
+                executable: /home/jubuyer/miniconda3/envs/motiondet/bin/python3
+                git:
+                    commit: d8b329232b28fb069c9c05f67778b80a35e3273a
+                    remote: git@github.com:jubuyer/realtime-route-overlay.git
+                gpu: NVIDIA GeForce RTX 3060 Ti
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ampere
+                      memoryTotal: "8589934592"
+                      name: NVIDIA GeForce RTX 3060 Ti
+                      uuid: GPU-bfd41125-dc5d-5a3e-a005-11f2e90eb15e
+                host: JubPC
+                memory:
+                    total: "16730238976"
+                os: Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35
+                program: /home/jubuyer/realtime-route-overlay/scripts/benchmark/optimized_video_pipeline.py
+                python: CPython 3.10.19
+                root: /home/jubuyer/realtime-route-overlay
+                startedAt: "2025-12-07T01:27:55.372016Z"
+                writerId: 8cr4wyovtepr1s8t3ltvxca3g50a8df1
+        m: []
+        python_version: 3.10.19
+        t:
+            "1":
+                - 1
+                - 41
+                - 105
+            "2":
+                - 1
+                - 41
+                - 105
+            "3":
+                - 2
+                - 13
+                - 16
+            "4": 3.10.19
+            "5": 0.23.0
+            "12": 0.23.0
+            "13": linux-x86_64
+backbone:
+    value: "18"
+batch_size:
+    value: 8
+cache_mode:
+    value: preload
+crop_ratio:
+    value: 0.8
+device:
+    value: cuda
+fp16:
+    value: false
+model_train_height:
+    value: 320
+model_train_width:
+    value: 800
+num_col:
+    value: 41
+num_lanes:
+    value: 4
+num_row:
+    value: 56
+num_workers:
+    value: 0
+target_height:
+    value: 320
+target_width:
+    value: 800
+video_fps:
+    value: 10
+video_path:
+    value: datasets/kitti_raw/2011_09_26/2011_09_26_drive_0052_sync/drive_0052_sync.mp4
