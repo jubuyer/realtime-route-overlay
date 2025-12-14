@@ -1,0 +1,28 @@
+Baseline Video Pipeline Benchmark Results
+============================================================
+
+Total Frames Processed: 294
+Video FPS: 10.00
+Data Loading Time (mean): 0.36 ms
+Data Loading Time (std): 0.34 ms
+Data Loading Time (p95): 0.43 ms
+Data Loading Time (p99): 0.47 ms
+Preprocessing Time (mean): 1.24 ms
+Preprocessing Time (std): 1.89 ms
+Preprocessing Time (p95): 1.49 ms
+Preprocessing Time (p99): 1.91 ms
+Inference Time (mean): 83.56 ms
+Inference Time (std): 6.10 ms
+Inference Time (p95): 87.83 ms
+Inference Time (p99): 100.25 ms
+Postprocessing Time (mean): 0.00 ms
+Postprocessing Time (std): 0.00 ms
+Postprocessing Time (p95): 0.00 ms
+Postprocessing Time (p99): 0.00 ms
+Total Time per Frame (mean): 83.57 ms
+Total Time per Frame (std): 6.10 ms
+Total Time per Frame (p95): 87.84 ms
+Total Time per Frame (p99): 100.25 ms
+Processing FPS: 11.97
+CPU Memory (mean MB): 1163.82
+CPU Memory (p95 MB): 1173.02

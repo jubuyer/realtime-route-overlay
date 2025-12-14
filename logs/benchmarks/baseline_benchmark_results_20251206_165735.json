@@ -1,0 +1,36 @@
+{
+  "metadata": {
+    "timestamp": "2025-12-06 16:57:35",
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+    "python_version": "3.10.19",
+    "torch_version": "2.9.1+cu128",
+    "cuda_version": "12.8"
+  },
+  "results": {
+    "Total Frames Processed": 75,
+    "Video FPS": "10.00",
+    "Data Loading Time (mean)": "0.32 ms",
+    "Data Loading Time (std)": "0.19 ms",
+    "Data Loading Time (p95)": "0.36 ms",
+    "Data Loading Time (p99)": "1.33 ms",
+    "Preprocessing Time (mean)": "1.45 ms",
+    "Preprocessing Time (std)": "2.45 ms",
+    "Preprocessing Time (p95)": "2.18 ms",
+    "Preprocessing Time (p99)": "7.35 ms",
+    "Inference Time (mean)": "83.81 ms",
+    "Inference Time (std)": "6.07 ms",
+    "Inference Time (p95)": "88.42 ms",
+    "Inference Time (p99)": "100.61 ms",
+    "Postprocessing Time (mean)": "0.00 ms",
+    "Postprocessing Time (std)": "0.00 ms",
+    "Postprocessing Time (p95)": "0.00 ms",
+    "Postprocessing Time (p99)": "0.00 ms",
+    "Total Time per Frame (mean)": "83.82 ms",
+    "Total Time per Frame (std)": "6.07 ms",
+    "Total Time per Frame (p95)": "88.42 ms",
+    "Total Time per Frame (p99)": "100.61 ms",
+    "Processing FPS": "11.93",
+    "CPU Memory (mean MB)": "1170.19",
+    "CPU Memory (p95 MB)": "1178.02"
+  }
+}

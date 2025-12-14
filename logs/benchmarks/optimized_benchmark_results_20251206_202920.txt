@@ -1,0 +1,42 @@
+Optimized Video Pipeline Benchmark Results
+============================================================
+
+Total Frames Processed: 1170
+Total Batches Processed: 147
+Batch Size: 8
+Num Workers: 0
+Video FPS: 10.00
+Device: cuda
+FP16 Enabled: False
+Target Height: 320
+Target Width: 800
+Cache Mode: preload
+GPU Transfer Time per Batch (mean): 1.15 ms
+GPU Transfer Time per Batch (std): 0.15 ms
+GPU Transfer Time per Batch (p95): 1.43 ms
+GPU Transfer Time per Batch (p99): 1.70 ms
+Inference Time per Batch (mean): 29.64 ms
+Inference Time per Batch (std): 2.52 ms
+Inference Time per Batch (p95): 33.76 ms
+Inference Time per Batch (p99): 35.50 ms
+Postprocessing Time per Batch (mean): 0.00 ms
+Postprocessing Time per Batch (std): 0.00 ms
+Postprocessing Time per Batch (p95): 0.00 ms
+Postprocessing Time per Batch (p99): 0.00 ms
+Total Time per Batch (mean): -1765057305957.45 ms
+Total Time per Batch (std): 2.60 ms
+Total Time per Batch (p95): -1765057305953.15 ms
+Total Time per Batch (p99): -1765057305951.19 ms
+Batch Processing FPS: 0.00
+Time per Frame (mean): -221771399887.94 ms
+Time per Frame (std): 27436451574.94 ms
+Time per Frame (p95): -220632163244.14 ms
+Time per Frame (p99): -220632163243.83 ms
+Frame Processing FPS: 0.00
+GPU Memory Used (MB): 284.56
+Peak GPU Memory (MB): 653.42
+Dataset Preload Time (s): 1.75
+Cache Build Time (s): 0.00
+Cache Load Time (s): 0.00
+Cache Hits: 0
+Cache Misses: 0
