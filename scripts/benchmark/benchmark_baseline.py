@@ -426,7 +426,7 @@ def main():
     batch_size = 1  # Start with batch_size=1 for baseline
     num_workers = 4
     max_images = 500  # Adjust based on your dataset size
-    experiment_name = "ufldv2-baseline"
+    experiment_name = "ufldv2-baseline-NVidia-GPU-4070"
     
     # Paths
     ckpt_path = UFLD_PATH / "weights" / "tusimple_res18.pth"
@@ -464,6 +464,7 @@ def main():
     wandb.init(
         project="ufldv2-optimization",
         name=experiment_name,
+        group = 'inference-baseline',
         config={
             # Model configuration
             **model_info,

@@ -1,0 +1,132 @@
+_wandb:
+    value:
+        cli_version: 0.23.0
+        e:
+            m6q9vtomlfuc2yluyh1sv5k8bnpbms8l:
+                codePath: scripts\benchmark\benchmark_baseline.py
+                codePathLocal: benchmark_baseline.py
+                cpu_count: 8
+                cpu_count_logical: 16
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "1999509647360"
+                        used: "1076012048384"
+                email: hpmlcoms6998@gmail.com
+                executable: C:\Users\adiro\anaconda3\envs\lane-detection\python.exe
+                git:
+                    commit: 5183d396b414a11c32437513d67f66a731f6573e
+                    remote: https://github.com/jubuyer/realtime-route-overlay.git
+                gpu: NVIDIA GeForce RTX 4070
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ada
+                      cudaCores: 5888
+                      memoryTotal: "12878610432"
+                      name: NVIDIA GeForce RTX 4070
+                      uuid: GPU-fb87ffa9-a8e5-56f3-a903-dd279d111b84
+                host: bahtamus
+                memory:
+                    total: "33397125120"
+                os: Windows-10-10.0.26100-SP0
+                program: C:\Users\adiro\Projects\realtime-route-overlay\scripts\benchmark\benchmark_baseline.py
+                python: CPython 3.10.19
+                root: C:\Users\adiro\Projects\realtime-route-overlay\scripts\benchmark
+                startedAt: "2025-12-15T01:41:21.402051Z"
+                writerId: m6q9vtomlfuc2yluyh1sv5k8bnpbms8l
+        m: []
+        python_version: 3.10.19
+        t:
+            "1":
+                - 1
+                - 41
+            "2":
+                - 1
+                - 41
+            "3":
+                - 2
+                - 13
+                - 15
+                - 16
+                - 61
+            "4": 3.10.19
+            "5": 0.23.0
+            "8":
+                - 3
+            "10":
+                - 21
+            "12": 0.23.0
+            "13": windows-amd64
+backbone:
+    value: "18"
+batch_size:
+    value: 1
+cpu_count:
+    value: 16
+cuda_version:
+    value: "11.8"
+cudnn_version:
+    value: 90100
+dataset:
+    value: TuSimple
+dataset_split:
+    value: test
+device:
+    value: cuda
+gpu_available:
+    value: true
+gpu_count:
+    value: 1
+gpu_memory_total_gb:
+    value: 11.99365234375
+gpu_name:
+    value: NVIDIA GeForce RTX 4070
+hostname:
+    value: bahtamus
+input_height:
+    value: 320
+input_width:
+    value: 800
+max_images:
+    value: 500
+model_architecture:
+    value: |-
+        parsingNet(
+          (model): resnet(
+            (conv1): Conv2d(3, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+            (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+            (maxpool): MaxPool2d(kernel_size=3, stride=2, padding=1, dilation=1, ceil_mode=False)
+            (layer1): Sequential(
+              (0): BasicBlock(
+                (conv1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (relu): ReLU(inplace=True)
+                (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              )
+              (1): BasicBlock(
+                (conv1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_ru
+model_name:
+    value: UFLDv2
+model_size_mb:
+    value: 367.6219482421875
+num_lanes:
+    value: 4
+num_workers:
+    value: 4
+optimization_technique:
+    value: baseline
+platform:
+    value: Windows-10-10.0.26100-SP0
+precision:
+    value: fp32
+python_version:
+    value: 3.10.19
+pytorch_version:
+    value: 2.5.1
+total_parameters:
+    value: 96369888
+trainable_parameters:
+    value: 96369888

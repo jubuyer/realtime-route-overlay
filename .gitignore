@@ -212,3 +212,4 @@ datasets/*
 
 # model weights
 models/Ultra-Fast-Lane-Detection-v2/weights/*
+results/baseline/profiler_trace.json
