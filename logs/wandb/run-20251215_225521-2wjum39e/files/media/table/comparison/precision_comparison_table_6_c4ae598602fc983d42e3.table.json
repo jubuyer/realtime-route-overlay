@@ -1,0 +1,1 @@
+{"columns": ["Precision Mode", "Throughput (img/s)", "Latency (ms)", "Memory (MB)", "Speedup vs FP32", "Memory Reduction"], "data": [["FP32", "365.16", "43.09", "426.74", "1.00x", "0.0%"], ["FP16", "517.88", "30.38", "218.91", "1.42x", "48.7%"], ["AMP", "437.75", "35.94", "425.99", "1.20x", "0.2%"]]}

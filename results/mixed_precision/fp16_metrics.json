@@ -1,0 +1,32 @@
+{
+  "data_loading": {
+    "mean_ms": 2.537613333455132,
+    "std_ms": 0.8814901811203806,
+    "median_ms": 2.23829999595182
+  },
+  "inference": {
+    "mean_ms": 30.380193333742984,
+    "std_ms": 27.14485299174552,
+    "min_ms": 12.888800003565848,
+    "max_ms": 93.43879999505589,
+    "median_ms": 16.500300000188872,
+    "p95_ms": 83.26359999846316,
+    "p99_ms": 91.40375999573735
+  },
+  "total_pipeline": {
+    "mean_ms": 32.917806667198114,
+    "std_ms": 27.84876296265498,
+    "median_ms": 18.58889999857638
+  },
+  "throughput": {
+    "images_per_second": 517.8812774656859,
+    "batches_per_second": 32.91618288976817,
+    "mean_batch_fps": 32.91618288976817
+  },
+  "gpu_memory": {
+    "mean_allocated_mb": 218.30725911458333,
+    "max_allocated_mb": 218.91455078125,
+    "mean_reserved_mb": 916.0,
+    "max_reserved_mb": 916.0
+  }
+}
