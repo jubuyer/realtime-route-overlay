@@ -1,0 +1,23 @@
+
+{
+    "project_id": "hpml-473120",
+    "gpu_type": "nvidia-tesla-t4",
+    "vm_config": {
+        "machine_type": "n1-standard-8",
+        "disk_size_gb": 500,
+        "disk_type": "pd-balanced",
+        "boot_image": "projects/ml-images/global/images/c0-deeplearning-common-cu113-v20241118-debian-11-py310",
+        "gpu_count": 1,
+        "use_spot": false
+    },
+    "provisioning": {
+        "max_zones": 130,
+        "instance_prefix": "gpu-vm",
+        "timeout_seconds": 1000
+    },
+    "output": {
+        "save_results": true,
+        "output_directory": "./results",
+        "log_level": "INFO"
+    }
+}
