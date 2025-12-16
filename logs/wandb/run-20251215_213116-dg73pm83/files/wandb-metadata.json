@@ -1,0 +1,40 @@
+{
+  "os": "Windows-10-10.0.26100-SP0",
+  "python": "CPython 3.10.19",
+  "startedAt": "2025-12-16T02:31:16.085868Z",
+  "program": "C:\\Users\\adiro\\Projects\\realtime-route-overlay\\scripts\\benchmark\\benchmark_baseline.py",
+  "codePath": "scripts\\benchmark\\benchmark_baseline.py",
+  "codePathLocal": "benchmark_baseline.py",
+  "git": {
+    "remote": "https://github.com/jubuyer/realtime-route-overlay.git",
+    "commit": "0c07cf346be108e7393fff35097b727072735697"
+  },
+  "email": "hpmlcoms6998@gmail.com",
+  "root": "C:\\Users\\adiro\\Projects\\realtime-route-overlay\\scripts\\benchmark",
+  "host": "bahtamus",
+  "executable": "C:\\Users\\adiro\\anaconda3\\envs\\lane-detection\\python.exe",
+  "cpu_count": 8,
+  "cpu_count_logical": 16,
+  "gpu": "NVIDIA GeForce RTX 4070",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "1999509647360",
+      "used": "1077036486656"
+    }
+  },
+  "memory": {
+    "total": "33397125120"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GeForce RTX 4070",
+      "memoryTotal": "12878610432",
+      "cudaCores": 5888,
+      "architecture": "Ada",
+      "uuid": "GPU-fb87ffa9-a8e5-56f3-a903-dd279d111b84"
+    }
+  ],
+  "cudaVersion": "13.0",
+  "writerId": "a90snyvkp0vhe6n6d5tgcxdh9wg3y36p"
+}
