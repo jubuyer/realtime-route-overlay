@@ -426,7 +426,7 @@ def main():
     batch_size = 1  # Start with batch_size=1 for baseline
     num_workers = 4
     max_images = 500  # Adjust based on your dataset size
-    experiment_name = "ufldv2-baseline-NVidia-GPU-4070"
+    experiment_name = "ufldv2-baseline-NVidia-T4"
     
     # Paths
     ckpt_path = UFLD_PATH / "weights" / "tusimple_res18.pth"
