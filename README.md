@@ -1,19 +1,28 @@
-# Real-Time Route Overlay for Augmented Visual Navigation
+# HPML Project: Optimizing UFLDv2 For GPS Path Projection
 
-**Team:** Jubayer Ahmed, Kahou Lei, Phoebe Tang, Tianshu Chu
+## Team Information
+- Jubayer Ahmed (ja3847)
+- Kahou Lei (kl3641)
+- Phoebe Tang (ft2619)
+- Tianshu Chu (tc3396)
 
 **Institution:** Columbia University  
 
 ---
 
-## Overview
-This repository implements a real-time augmented reality navigation pipeline that overlays GPS-based routes from OpenStreetMap or recorded GPS logs directly onto live or pre-recorded video feeds (e.g., walking or driving footage). The system aligns the map coordinates with the camera’s visual perspective to create an intuitive visual navigation experience.
-
-Our focus is on real-time inference performance, low-latency overlay rendering, and efficient edge deployment using NVIDIA GPUs and TensorRT optimization.
+## 1. Problem Statement
+In this work, we frame the problem as an optimization
+challenge: how to improve the throughput and latency of a
+lane-detection-based AR pipeline while preserving geometric
+accuracy. Rather than focusing on training novel models,
+we target system-level optimizations, including data loading,
+batching, and inference execution, to enable scalable, real-time
+AR navigation suitable for high-volume video processing.
 
 ---
 
-## Base Model: Ultra Fast Lane Detection v2
+## 2. Model Description
+### Base Model: Ultra Fast Lane Detection v2
 
 ### What is UFLDv2?
 Ultra Fast Lane Detection v2 is a state-of-the-art lane detection model that reformulates lane detection as a row-wise classification problem rather than traditional pixel-wise segmentation. This approach significantly reduces computational cost while maintaining high accuracy.
@@ -34,7 +43,17 @@ Ultra Fast Lane Detection v2 is a state-of-the-art lane detection model that ref
 - **Output**: Lane coordinates represented as row-wise anchor points
 - **Parameters**: ~11M (ResNet-18), ~21M (ResNet-34)
 
-## Environment Setup
+---
+
+## 3. Final Results Summary
+
+---
+
+## 4. Reproducibility Instructions
+
+### A. Requirements
+
+#### Environment Setup
 ```bash
 git clone https://github.com/jubuyer/realtime-route-overlay.git
 cd realtime-route-overlay
@@ -49,7 +68,7 @@ pip install -r configs/requirements.txt
 wandb login
 ```
 
-### Dataset Setup
+#### Dataset Setup
 
 #### TuSimple Dataset
 The TuSimple dataset contains highway driving scenarios with lane annotations.
@@ -72,8 +91,10 @@ data/tusimple/
 ├── test_tasks_0627.json
 └── test_label.json
 ```
+#### KITTI Raw Suite
+The KITTI Raw Road dataset was used to benchmark inference. Accessing this dataset requires an official account.
 
-### Pretrained Model Weights
+#### Pretrained Model Weights
 
 **Available Models:**
 - `tusimple_res18.pth` - ResNet-18 backbone (faster, ~11M parameters)
@@ -81,3 +102,10 @@ data/tusimple/
 
 **Download:**
 Model weights are available for download on the [model repo](https://github.com/cfzd/Ultra-Fast-Lane-Detection-v2) under trained model section.
+---
+
+### B. Wandb Dashboard
+
+View training and evaluation metrics here: https://wandb.ai/hpmlcoms6998-columbia-university/ufldv2-optimization
+
+---
