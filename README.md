@@ -73,9 +73,9 @@ Realtime-Route-Overlay (top-level)
 	- Jupyter notebooks used for dataset download
 
 - quantization/
-	- Contains artifacts and notebooks related to model quantization and hardware-optimized exports. Example files in this repo:
-		- `Snapdragon_optimized.ipynb` — notebook demonstrating device-specific optimization steps.
-		- `ufldv2_res18_FP32.onnx` — exported ONNX model used as a starting point for quantization/optimization.
+	- Artifacts for INT8 post-training quantization (PTQ) and Snapdragon NPU Evaluation. Files in this repo:
+		- `Snapdragon_optimized.ipynb` — end-to-end Snapdragon workflow: load/export ONNX, run FP32 baseline profiling, run INT8 PTQ (W8A8) + compile, then collect on-device latency/throughput and numeric-drift sanity checks (optionally logs to W&B).
+		- `ufldv2_res18_FP32.onnx` — exported FP32 ONNX model used as the starting point for quantization/compilation.
 
 - results/
 	- Stores processed experiment outputs and figures used for evaluation. Typical subfolders include:
