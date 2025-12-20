@@ -85,17 +85,17 @@ Realtime-Route-Overlay (top-level)
 
 - scripts/
 	- Main collection of runnable Python scripts and utilities used by the project. Key scripts:
-		- `dataloader.py` — dataset loading utilities and PyTorch dataset/dataloader wrappers.
+		- `dataloader.py` — Loads the raw KITTI images and GPS/IMU sensor data from disk.
 		- `diagnose_import.py` — quick environment / import checks to validate dependencies.
 		- `download_kitti.py` — helper to download KITTI data
-		- `geometry.py` — 
+		- `geometry.py` — The "Math Engine". It calculates how to convert real-world GPS coordinates into 2D pixel coordinates on the screen.
 		- `inference.py` — inference runner for UFLDv2 (single-image inference harness).
 		- `kitti_frames_to_video.py` — converts KITTI frames into a stitched video for visualization/benchmarking.
-		- `main_pipeline.py` — 
-		- `maps_client.py` — 
+		- `main_pipeline.py` — The main startup script that connects all modules and runs the loop for AR navigation.
+		- `maps_client.py` — Connects to Google Maps to get the exact smooth shape of the road (correcting GPS errors).
 		- `preprocess_davis.py` / `preprocess_kitti.py` — dataset-specific preprocessing scripts.
 		- `verify_setup.py` — convenience script to validate that environment, devices, and key files are present.
-		- `visualizer.py` — 
+		- `visualizer.py` — Takes the calculated points and draws the yellow AR line and arrow onto the video.
 	- Additional script folders:
 		- `scripts/benchmark/` — benchmarking helpers and runners used to collect throughput/latency metrics.
 		- `scripts/GPU Provisioning/` — scripts used to provision GPU VMs from edstem
