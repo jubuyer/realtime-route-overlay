@@ -50,7 +50,59 @@ Ultra Fast Lane Detection v2 is a state-of-the-art lane detection model that ref
 - **Parameters**: ~11M (ResNet-18), ~21M (ResNet-34)
 
 ---
-## 2. Repository Outline
+## 2. Repository outline
+
+Below is an expanded description of the repository layout and the purpose of the most relevant files and folders. Use this as a quick reference to find code, data helpers, experiments, and results.
+
+Realtime-Route-Overlay (top-level)
+
+- configs/
+	- env.yml — Conda environment specification used to reproduce the development environment (packages, channels, python version). Used with `conda env create -f configs/env.yml`.
+
+- datasets/
+	- README.md — Instructions for acquiring and organizing datasets (KITTI, TuSimple, etc.).
+	- (this directory is intended to contain dataset download scripts or dataset pointers; datasets are too large to upload to github so we chose to keep them locally)
+
+- logs/
+	- Stores experiment logs, saved benchmark outputs and WandB run exports. Example subfolders include `benchmarks/` (plain-text / JSON benchmark results) and `wandb/` (archived WandB runs).
+
+- models/
+	- Ultra-Fast-Lane-Detection-v2/ — Copy of the UFLDv2 model code (architecture and model utilities). This folder is the base lane-detection implementation used by the project and may include model definitions, checkpoints, and conversion scripts.
+
+- notebooks/
+	- Jupyter notebooks used for dataset download
+
+- quantization/
+	- Contains artifacts and notebooks related to model quantization and hardware-optimized exports. Example files in this repo:
+		- `Snapdragon_optimized.ipynb` — notebook demonstrating device-specific optimization steps.
+		- `ufldv2_res18_FP32.onnx` — exported ONNX model used as a starting point for quantization/optimization.
+
+- results/
+	- Stores processed experiment outputs and figures used for evaluation. Typical subfolders include:
+		- `baseline/` — results from baseline runs
+		- `batch_optimization/` — results from batch-sizing experiments
+		- `mixed_precision/` and `mixed_precision_accuracy/` — experiments and accuracy comparisons for AMP/mixed-precision runs
+
+- scripts/
+	- Main collection of runnable Python scripts and utilities used by the project. Key scripts:
+		- `dataloader.py` — dataset loading utilities and PyTorch dataset/dataloader wrappers.
+		- `diagnose_import.py` — quick environment / import checks to validate dependencies.
+		- `download_kitti.py` — helper to download KITTI data
+		- `geometry.py` — 
+		- `inference.py` — inference runner for UFLDv2 (single-image inference harness).
+		- `kitti_frames_to_video.py` — converts KITTI frames into a stitched video for visualization/benchmarking.
+		- `main_pipeline.py` — 
+		- `maps_client.py` — 
+		- `preprocess_davis.py` / `preprocess_kitti.py` — dataset-specific preprocessing scripts.
+		- `verify_setup.py` — convenience script to validate that environment, devices, and key files are present.
+		- `visualizer.py` — 
+	- Additional script folders:
+		- `scripts/benchmark/` — benchmarking helpers and runners used to collect throughput/latency metrics.
+		- `scripts/GPU Provisioning/` — scripts used to provision GPU VMs from edstem
+		- `scripts/simple_optimization/` — experimental optimization scripts.
+
+- README.md
+	- This file — high-level project overview, setup instructions, and the section you are reading now.
 
 ## 3. Set Up Instructions and Commands
 ### Environment Setup
