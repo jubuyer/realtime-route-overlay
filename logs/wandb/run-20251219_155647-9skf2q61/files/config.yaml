@@ -1,0 +1,105 @@
+_wandb:
+    value:
+        cli_version: 0.23.0
+        e:
+            m7poyvauilgj9mo8zdbvn3y8cgre1l8o:
+                codePath: scripts\simple_optimization\mixed_precision_optimization.py
+                codePathLocal: mixed_precision_optimization.py
+                cpu_count: 8
+                cpu_count_logical: 16
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "1999509647360"
+                        used: "1031115104256"
+                email: hpmlcoms6998@gmail.com
+                executable: C:\Users\adiro\anaconda3\envs\lane-detection\python.exe
+                git:
+                    commit: 369774cc4f56359770aef94fbecdaaf2e98b715f
+                    remote: https://github.com/jubuyer/realtime-route-overlay.git
+                gpu: NVIDIA GeForce RTX 4070
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ada
+                      cudaCores: 5888
+                      memoryTotal: "12878610432"
+                      name: NVIDIA GeForce RTX 4070
+                      uuid: GPU-fb87ffa9-a8e5-56f3-a903-dd279d111b84
+                host: bahtamus
+                memory:
+                    total: "33397125120"
+                os: Windows-10-10.0.26100-SP0
+                program: C:\Users\adiro\Projects\realtime-route-overlay\scripts\simple_optimization\mixed_precision_optimization.py
+                python: CPython 3.10.19
+                root: C:\Users\adiro\Projects\realtime-route-overlay\scripts\simple_optimization
+                startedAt: "2025-12-19T23:56:47.253723Z"
+                writerId: m7poyvauilgj9mo8zdbvn3y8cgre1l8o
+        m: []
+        python_version: 3.10.19
+        t:
+            "1":
+                - 1
+                - 41
+            "2":
+                - 1
+                - 41
+            "3":
+                - 2
+                - 13
+                - 15
+                - 16
+            "4": 3.10.19
+            "5": 0.23.0
+            "8":
+                - 3
+            "12": 0.23.0
+            "13": windows-amd64
+backbone:
+    value: "18"
+batch_size:
+    value: 16
+cpu_count:
+    value: 16
+cuda_version:
+    value: "11.8"
+cudnn_version:
+    value: 90100
+dataset:
+    value: TuSimple
+evaluate_accuracy:
+    value: true
+gpu_available:
+    value: true
+gpu_count:
+    value: 1
+gpu_memory_total_gb:
+    value: 11.99365234375
+gpu_name:
+    value: NVIDIA GeForce RTX 4070
+hostname:
+    value: bahtamus
+model_name:
+    value: UFLDv2
+model_size_fp16_mb:
+    value: 183.81097412109375
+model_size_fp32_mb:
+    value: 367.6219482421875
+num_workers:
+    value: 4
+optimization_technique:
+    value: mixed_precision_with_accuracy
+platform:
+    value: Windows-10-10.0.26100-SP0
+precision_modes_tested:
+    value:
+        - fp32
+        - fp16
+        - amp
+python_version:
+    value: 3.10.19
+pytorch_version:
+    value: 2.5.1
+tensor_cores_available:
+    value: true
+total_parameters:
+    value: 96369888

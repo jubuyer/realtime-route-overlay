@@ -1,6 +1,7 @@
 """
 Optimization Technique 2: Mixed Precision Inference (FP16)
 Uses automatic mixed precision to reduce memory usage and improve inference speed
+while measuring impact on lane detection accuracy
 """
 
 import os
@@ -34,8 +35,9 @@ COL_ANCHOR = np.linspace(0.0, 1.0, cfg.num_col)
 class LaneDataset(Dataset):
     """Dataset for loading images for inference benchmarking"""
     
-    def __init__(self, image_paths: List[Path], transform=None):
+    def __init__(self, image_paths: List[Path], labels_dict: Dict = None, transform=None):
         self.image_paths = image_paths
+        self.labels_dict = labels_dict or {}
         self.transform = transform
         
     def __len__(self):
@@ -49,6 +51,22 @@ class LaneDataset(Dataset):
             raise FileNotFoundError(f"Cannot load image: {img_path}")
         
         ori_h, ori_w = img.shape[:2]
+        
+        # get label if available - match TuSimple format
+        try:
+            # the label set has clips in path
+            path_parts = img_path.parts
+            if 'clips' in path_parts:
+                clips_idx = path_parts.index('clips')
+                relative_path = '/'.join(path_parts[clips_idx:])
+            else:
+                # fallback: get relative path from test_set
+                relative_path = img_path.relative_to(img_path.parents[2])
+                relative_path = str(relative_path).replace('\\', '/')
+        except:
+            relative_path = img_path.name
+        
+        label = self.labels_dict.get(relative_path, None)
         
         # Crop and resize
         cut_height = int(cfg.train_height * (1 - cfg.crop_ratio))
@@ -67,7 +85,215 @@ class LaneDataset(Dataset):
         # HWC → CHW
         img_chw = np.transpose(img_norm, (2, 0, 1))
         
-        return torch.from_numpy(img_chw).float(), ori_w, ori_h, str(img_path)
+        return torch.from_numpy(img_chw).float(), ori_w, ori_h, str(img_path), label
+
+
+def custom_collate(batch):
+    """Custom collate function to handle None labels"""
+    imgs = torch.stack([item[0] for item in batch])
+    ori_ws = torch.tensor([item[1] for item in batch])
+    ori_hs = torch.tensor([item[2] for item in batch])
+    paths = [item[3] for item in batch]
+    labels = [item[4] for item in batch]
+    
+    return imgs, ori_ws, ori_hs, paths, labels
+
+
+def load_tusimple_labels(label_path: Path) -> Dict:
+    """Load TuSimple test labels"""
+    print(f"Loading labels from: {label_path}")
+    labels_dict = {}
+    
+    with open(label_path, 'r') as f:
+        for line in f:
+            label = json.loads(line.strip())
+            raw_file = label['raw_file']
+            labels_dict[raw_file] = label
+    
+    print(f"Loaded {len(labels_dict)} labels\n")
+    return labels_dict
+
+
+def compute_tusimple_accuracy(predictions: List[Dict], labels_dict: Dict) -> Dict:
+    """
+    Compute TuSimple accuracy metrics
+    predictions: list of dicts with 'raw_file' and 'lanes' (list of lane coordinates)
+    labels_dict: ground truth labels
+    """
+    total_pred_lanes = sum(len(p['lanes']) for p in predictions)
+    
+    if total_pred_lanes == 0:
+        print("Warning: No valid predictions found. Returning zero accuracy.")
+        return {
+            'accuracy': 0.0,
+            'precision': 0.0,
+            'recall': 0.0,
+            'f1_score': 0.0,
+            'total_gt_lanes': 0,
+            'correct_predictions': 0,
+            'false_positives': 0,
+            'false_negatives': 0,
+        }
+    
+    print(f"\nDEBUG - Path matching:")
+    print(f"Sample prediction paths (first 3):")
+    for i, pred in enumerate(predictions[:3]):
+        print(f"  {i}: {pred['raw_file']}")
+    print(f"\nSample label paths (first 3):")
+    for i, key in enumerate(list(labels_dict.keys())[:3]):
+        print(f"  {i}: {key}")
+    
+    total = 0
+    correct = 0
+    fp = 0  # False positives
+    fn = 0  # False negatives
+    
+    matched_files = 0
+    
+    for pred in predictions:
+        raw_file = pred['raw_file']
+        if raw_file not in labels_dict:
+            continue
+        
+        matched_files += 1
+        gt = labels_dict[raw_file]
+        pred_lanes = pred['lanes']
+        gt_lanes = gt['lanes']
+        
+        # IoU-based matching
+        matched_gt = set()
+        
+        for pred_lane in pred_lanes:
+            pred_lane_valid = [p for p in pred_lane if p >= 0]  # rm invalid points
+            if len(pred_lane_valid) == 0:
+                fp += 1
+                continue
+                
+            best_iou = 0
+            best_match = -1
+            
+            for gt_idx, gt_lane in enumerate(gt_lanes):
+                gt_lane_valid = [p for p in gt_lane if p >= 0]
+                if len(gt_lane_valid) == 0:
+                    continue
+                
+                iou = compute_lane_iou(pred_lane, gt_lane)
+                if iou > best_iou:
+                    best_iou = iou
+                    best_match = gt_idx
+            
+            if best_iou > 0.5 and best_match not in matched_gt:
+                correct += 1
+                matched_gt.add(best_match)
+            else:
+                fp += 1
+
+        fn += len(gt_lanes) - len(matched_gt)
+        total += len(gt_lanes)
+    
+    print(f"\nMatched {matched_files}/{len(predictions)} files with ground truth")
+    print(f"Total GT lanes: {total}, Correct: {correct}, FP: {fp}, FN: {fn}")
+    
+    accuracy = correct / total if total > 0 else 0
+    precision = correct / (correct + fp) if (correct + fp) > 0 else 0
+    recall = correct / (correct + fn) if (correct + fn) > 0 else 0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+    
+    return {
+        'accuracy': accuracy,
+        'precision': precision,
+        'recall': recall,
+        'f1_score': f1,
+        'total_gt_lanes': total,
+        'correct_predictions': correct,
+        'false_positives': fp,
+        'false_negatives': fn,
+    }
+
+
+def compute_lane_iou(lane1: List, lane2: List) -> float:
+    """Compute IoU between two lanes (simplified version)"""
+    # overlap ratio based on x-coordinates
+    
+    if len(lane1) == 0 or len(lane2) == 0:
+        return 0.0
+    
+    # count overlapping points within threshold
+    threshold = 40
+    overlap = 0
+    
+    for p1 in lane1:
+        for p2 in lane2:
+            if abs(p1 - p2) < threshold:
+                overlap += 1
+                break
+    
+    union = len(lane1) + len(lane2) - overlap
+    return overlap / union if union > 0 else 0.0
+
+
+def decode_predictions(outputs, ori_w, ori_h) -> List[List]:
+    """Decode UFLDv2 model outputs to TuSimple lane format
+    
+    Output shapes:
+    - loc_row: (batch, num_grid=100, num_cls_row=56, num_lanes=4)
+    - exist_row: (batch, 2, num_cls_row=56, num_lanes=4)
+    
+    Returns list of lanes for each image, where each lane is a list of x-coordinates
+    corresponding to the h_samples heights in TuSimple format
+    """
+    if not isinstance(outputs, dict):
+        batch_size = outputs.shape[0]
+        return [[] for _ in range(batch_size)]
+    
+    loc_row = outputs['loc_row']  # (batch, 100, 56, 4)
+    exist_row = outputs['exist_row']  # (batch, 2, 56, 4)
+    
+    batch_size = loc_row.shape[0]
+    num_grid = loc_row.shape[1]  # 100
+    num_cls_row = loc_row.shape[2]  # 56 (same as cfg.num_row)
+    num_lanes = loc_row.shape[3]  # 4
+    
+    lanes_batch = []
+    
+    for b in range(batch_size):
+        lanes = []
+        
+        for lane_idx in range(num_lanes):
+            exist_pred = exist_row[b, :, :, lane_idx]
+            # avg across row anchors and apply softmax
+            exist_mean = exist_pred.mean(dim=1)  # (2,)
+            exist_prob = torch.softmax(exist_mean, dim=0)[1]  # prob of existence
+            
+            if exist_prob < 0.5:  # lane DNE
+                continue
+            
+            lane_points = []
+            
+            for row_idx in range(num_cls_row):
+                row_loc = loc_row[b, :, row_idx, lane_idx]  # (100,)
+                row_prob = torch.softmax(row_loc, dim=0)
+                max_prob, max_grid_idx = torch.max(row_prob, dim=0)
+                
+                # threshold for valid detection
+                if max_prob < 0.3:
+                    lane_points.append(-2)
+                else:
+                    # convert grid index to x-coordinate
+                    x_normalized = max_grid_idx.item() / (num_grid - 1)
+                    x = int(x_normalized * ori_w)
+                    
+                    x = max(0, min(x, ori_w - 1))
+                    lane_points.append(x)
+            
+            # add lane if it has enough valid points
+            valid_points = sum(1 for p in lane_points if p >= 0)
+            if valid_points >= 2:
+                lanes.append(lane_points)
+        
+        lanes_batch.append(lanes)
+    
+    return lanes_batch
 
 
 def build_model(device: torch.device):
@@ -144,7 +370,7 @@ def get_gpu_info():
         "cuda_version": torch.version.cuda,
         "cudnn_version": torch.backends.cudnn.version(),
         "gpu_memory_total_gb": torch.cuda.get_device_properties(0).total_memory / 1024**3,
-        "tensor_cores_available": torch.cuda.get_device_capability(0)[0] >= 7,  # Volta and newer
+        "tensor_cores_available": torch.cuda.get_device_capability(0)[0] >= 7,
     }
     
     return gpu_info
@@ -174,15 +400,18 @@ class BenchmarkMetrics:
         self.gpu_memory_used = []
         self.gpu_memory_allocated = []
         self.batch_sizes = []
+        self.predictions = []
     
     def add_batch_metrics(self, data_load_time, inference_time, 
-                         gpu_memory, gpu_memory_alloc, batch_size):
+                         gpu_memory, gpu_memory_alloc, batch_size, predictions=None):
         self.data_loading_times.append(data_load_time)
         self.inference_times.append(inference_time)
         self.total_times.append(data_load_time + inference_time)
         self.gpu_memory_used.append(gpu_memory)
         self.gpu_memory_allocated.append(gpu_memory_alloc)
         self.batch_sizes.append(batch_size)
+        if predictions:
+            self.predictions.extend(predictions)
     
     def compute_statistics(self) -> Dict:
         """Compute summary statistics"""
@@ -224,8 +453,8 @@ class BenchmarkMetrics:
 
 
 def benchmark_inference(model, dataloader, device, precision_mode, batch_size,
-                       num_warmup=10, log_frequency=10):
-    """Run inference benchmark with specified precision"""
+                       labels_dict, num_warmup=10, log_frequency=10, collect_predictions=True):
+    """Run inference benchmark with specified precision and accuracy measurement"""
     metrics = BenchmarkMetrics()
     
     print(f"\n{'='*60}")
@@ -238,10 +467,10 @@ def benchmark_inference(model, dataloader, device, precision_mode, batch_size,
     
     print(f"Running warmup ({num_warmup} iterations)...")
     with torch.no_grad():
-        for i, (imgs, _, _, _) in enumerate(dataloader):
+        for i, batch_data in enumerate(dataloader):
             if i >= num_warmup:
                 break
-            imgs = imgs.to(device)
+            imgs = batch_data[0].to(device)
             if use_fp16_input:
                 imgs = imgs.half()
             
@@ -259,9 +488,12 @@ def benchmark_inference(model, dataloader, device, precision_mode, batch_size,
 
     total_images = 0
     batch_count = 0
+    all_predictions = []
     
     with torch.no_grad():
-        for batch_idx, (imgs, ori_ws, ori_hs, paths) in enumerate(dataloader):
+        for batch_idx, batch_data in enumerate(dataloader):
+            imgs, ori_ws, ori_hs, paths, labels = batch_data
+            
             # data loading time
             data_load_start = time.perf_counter()
             imgs = imgs.to(device)
@@ -283,10 +515,34 @@ def benchmark_inference(model, dataloader, device, precision_mode, batch_size,
                 torch.cuda.synchronize()
             inference_time = time.perf_counter() - inference_start
             
+            if collect_predictions:
+                lanes_batch = decode_predictions(
+                    pred, ori_ws[0].item(), ori_hs[0].item()
+                )
+
+                for i, path in enumerate(paths):
+                    try:
+                        path_obj = Path(path)
+                        path_parts = path_obj.parts
+                        if 'clips' in path_parts:
+                            clips_idx = path_parts.index('clips')
+                            img_name = '/'.join(path_parts[clips_idx:])
+                        else:
+                            img_name = str(
+                                path_obj.relative_to(path_obj.parents[2])
+                            ).replace('\\', '/')
+                    except:
+                        img_name = Path(path).name
+
+                    all_predictions.append({
+                        'raw_file': img_name,
+                        'lanes': lanes_batch[i]
+                    })
+                    
             # GPU memory usage
             if device.type == 'cuda':
-                gpu_mem_reserved = torch.cuda.memory_reserved() / 1024**2  # MB
-                gpu_mem_allocated = torch.cuda.memory_allocated() / 1024**2  # MB
+                gpu_mem_reserved = torch.cuda.memory_reserved() / 1024**2
+                gpu_mem_allocated = torch.cuda.memory_allocated() / 1024**2
             else:
                 gpu_mem_reserved = 0
                 gpu_mem_allocated = 0
@@ -294,7 +550,8 @@ def benchmark_inference(model, dataloader, device, precision_mode, batch_size,
             current_batch_size = imgs.shape[0]
             metrics.add_batch_metrics(
                 data_load_time, inference_time, 
-                gpu_mem_reserved, gpu_mem_allocated, current_batch_size
+                gpu_mem_reserved, gpu_mem_allocated, current_batch_size,
+                predictions=all_predictions[-current_batch_size:]
             )
             
             total_images += current_batch_size
@@ -316,15 +573,23 @@ def benchmark_inference(model, dataloader, device, precision_mode, batch_size,
                       f"Inference: {inference_time*1000:.2f}ms, "
                       f"Images/sec: {images_per_sec:.1f}")
     
-    print(f"\n[{precision_mode.upper()}] Completed benchmark on {total_images} images\n")
+    print(f"\n[{precision_mode.upper()}] Completed benchmark on {total_images} images")
     
-    return metrics
+    # comp accuracy
+    print("Computing accuracy metrics...")
+    accuracy_metrics = compute_tusimple_accuracy(all_predictions, labels_dict)
+    print(f"Accuracy: {accuracy_metrics['accuracy']:.4f}")
+    print(f"F1 Score: {accuracy_metrics['f1_score']:.4f}\n")
+    
+    return metrics, accuracy_metrics
 
 
-def print_results(precision_mode: str, metrics: BenchmarkMetrics, 
-                 baseline_stats: Dict = None, save_path: Path = None):
-    """Print and save benchmark results"""
+def print_results(precision_mode: str, metrics: BenchmarkMetrics, accuracy_metrics: Dict,
+                 baseline_stats: Dict = None, baseline_accuracy: Dict = None, 
+                 save_path: Path = None):
+    """Print and save benchmark results with accuracy"""
     stats = metrics.compute_statistics()
+    stats['accuracy'] = accuracy_metrics
     
     print(f"\n{'='*60}")
     print(f"{precision_mode.upper()} RESULTS")
@@ -340,11 +605,17 @@ def print_results(precision_mode: str, metrics: BenchmarkMetrics,
     print("THROUGHPUT:")
     print(f"  Images/second: {stats['throughput']['images_per_second']:.2f}\n")
     
+    print("ACCURACY:")
+    print(f"  Accuracy: {accuracy_metrics['accuracy']:.4f}")
+    print(f"  Precision: {accuracy_metrics['precision']:.4f}")
+    print(f"  Recall: {accuracy_metrics['recall']:.4f}")
+    print(f"  F1 Score: {accuracy_metrics['f1_score']:.4f}\n")
+    
     print("GPU MEMORY:")
     print(f"  Peak Allocated: {stats['gpu_memory']['max_allocated_mb']:.2f} MB")
     print(f"  Peak Reserved:  {stats['gpu_memory']['max_reserved_mb']:.2f} MB\n")
     
-    if baseline_stats:
+    if baseline_stats and baseline_accuracy:
         baseline_fps = baseline_stats['throughput']['images_per_second']
         current_fps = stats['throughput']['images_per_second']
         speedup = current_fps / baseline_fps
@@ -353,15 +624,21 @@ def print_results(precision_mode: str, metrics: BenchmarkMetrics,
         current_mem = stats['gpu_memory']['max_allocated_mb']
         memory_reduction = (baseline_mem - current_mem) / baseline_mem * 100
         
-        baseline_latency = baseline_stats['inference']['mean_ms']
-        current_latency = stats['inference']['mean_ms']
-        latency_improvement = baseline_latency / current_latency
-        
-        print("COMPARISON TO FP32 BASELINE:")
-        print(f"  Throughput Speedup: {speedup:.2f}x ({baseline_fps:.1f} → {current_fps:.1f} images/s)")
-        print(f"  Latency Improvement: {latency_improvement:.2f}x ({baseline_latency:.2f}ms → {current_latency:.2f}ms)")
-        print(f"  Memory Reduction: {memory_reduction:.1f}% ({baseline_mem:.1f}MB → {current_mem:.1f}MB)")
-        print(f"  Memory Saved: {baseline_mem - current_mem:.2f} MB\n")
+        baseline_acc = baseline_accuracy['accuracy']
+        current_acc = accuracy_metrics['accuracy']
+
+        if baseline_acc > 0:
+            accuracy_change = (current_acc - baseline_acc) / baseline_acc * 100
+            print("COMPARISON TO FP32 BASELINE:")
+            print(f"  Throughput Speedup: {speedup:.2f}x ({baseline_fps:.1f} → {current_fps:.1f} images/s)")
+            print(f"  Memory Reduction: {memory_reduction:.1f}% ({baseline_mem:.1f}MB → {current_mem:.1f}MB)")
+            print(f"  Accuracy Change: {accuracy_change:+.2f}% ({baseline_acc:.4f} → {current_acc:.4f})")
+            print(f"  F1 Score Change: {(accuracy_metrics['f1_score'] - baseline_accuracy['f1_score']):.4f}\n")
+        else:
+            print("COMPARISON TO FP32 BASELINE:")
+            print(f"  Throughput Speedup: {speedup:.2f}x ({baseline_fps:.1f} → {current_fps:.1f} images/s)")
+            print(f"  Memory Reduction: {memory_reduction:.1f}% ({baseline_mem:.1f}MB → {current_mem:.1f}MB)")
+            print(f"  Accuracy: Not computed (decoder not implemented)\n")
     
     print(f"{'='*60}\n")
     
@@ -374,10 +651,12 @@ def print_results(precision_mode: str, metrics: BenchmarkMetrics,
     return stats
 
 
-def create_comparison_plots(fp32_stats: Dict, fp16_stats: Dict, amp_stats: Dict):
-    """Create comparison visualizations"""
+def create_comparison_plots(results: Dict):
+    """Create comparison visualizations including accuracy"""
     
     modes = ['FP32', 'FP16', 'AMP']
+    fp32_stats, fp16_stats, amp_stats = results['fp32'], results['fp16'], results['amp']
+    
     throughputs = [
         fp32_stats['throughput']['images_per_second'],
         fp16_stats['throughput']['images_per_second'],
@@ -393,46 +672,58 @@ def create_comparison_plots(fp32_stats: Dict, fp16_stats: Dict, amp_stats: Dict)
         fp16_stats['gpu_memory']['max_allocated_mb'],
         amp_stats['gpu_memory']['max_allocated_mb']
     ]
+    accuracies = [
+        fp32_stats['accuracy']['accuracy'],
+        fp16_stats['accuracy']['accuracy'],
+        amp_stats['accuracy']['accuracy']
+    ]
+    f1_scores = [
+        fp32_stats['accuracy']['f1_score'],
+        fp16_stats['accuracy']['f1_score'],
+        amp_stats['accuracy']['f1_score']
+    ]
     
     comparison_table = wandb.Table(
-        columns=["Precision Mode", "Throughput (img/s)", "Latency (ms)", 
-                 "Memory (MB)", "Speedup vs FP32", "Memory Reduction"],
+        columns=["Precision", "Throughput (img/s)", "Latency (ms)", 
+                 "Memory (MB)", "Accuracy", "F1 Score", "Speedup", "Acc Change"],
         data=[
             [
                 mode,
                 f"{throughput:.2f}",
                 f"{latency:.2f}",
                 f"{memory:.2f}",
+                f"{acc:.4f}",
+                f"{f1:.4f}",
                 f"{throughput / throughputs[0]:.2f}x",
-                f"{(memories[0] - memory) / memories[0] * 100:.1f}%"
+                f"{(acc - accuracies[0]) / accuracies[0] * 100:+.2f}%"
             ]
-            for mode, throughput, latency, memory in zip(modes, throughputs, latencies, memories)
+            for mode, throughput, latency, memory, acc, f1 in 
+            zip(modes, throughputs, latencies, memories, accuracies, f1_scores)
         ]
     )
     wandb.log({"comparison/precision_comparison_table": comparison_table})
     
-    # best configuration
     best_throughput_idx = np.argmax(throughputs)
-    best_memory_idx = np.argmin(memories)
+    best_accuracy_idx = np.argmax(accuracies)
     
     print(f"\n{'='*60}")
     print("PRECISION OPTIMIZATION ANALYSIS")
     print(f"{'='*60}\n")
     print(f"Best Throughput: {modes[best_throughput_idx]} ({throughputs[best_throughput_idx]:.2f} img/s)")
     print(f"  Speedup: {throughputs[best_throughput_idx] / throughputs[0]:.2f}x over FP32")
-    print(f"  Latency: {latencies[best_throughput_idx]:.2f} ms")
-    print(f"\nBest Memory Efficiency: {modes[best_memory_idx]} ({memories[best_memory_idx]:.2f} MB)")
-    print(f"  Memory Saved: {memories[0] - memories[best_memory_idx]:.2f} MB")
-    print(f"  Reduction: {(memories[0] - memories[best_memory_idx]) / memories[0] * 100:.1f}%")
+    print(f"  Accuracy: {accuracies[best_throughput_idx]:.4f}")
+    print(f"\nBest Accuracy: {modes[best_accuracy_idx]} ({accuracies[best_accuracy_idx]:.4f})")
+    print(f"  Throughput: {throughputs[best_accuracy_idx]:.2f} img/s")
+    print(f"  F1 Score: {f1_scores[best_accuracy_idx]:.4f}")
     print(f"\n{'='*60}\n")
     
     wandb.log({
         "comparison/best_throughput_mode": modes[best_throughput_idx],
-        "comparison/best_throughput": throughputs[best_throughput_idx],
+        "comparison/best_accuracy_mode": modes[best_accuracy_idx],
         "comparison/max_speedup": throughputs[best_throughput_idx] / throughputs[0],
-        "comparison/best_memory_mode": modes[best_memory_idx],
-        "comparison/min_memory_mb": memories[best_memory_idx],
-        "comparison/max_memory_reduction_pct": (memories[0] - memories[best_memory_idx]) / memories[0] * 100,
+        "comparison/max_accuracy": max(accuracies),
+        "comparison/accuracy_drop_fp16": (accuracies[0] - accuracies[1]) / accuracies[0] * 100,
+        "comparison/accuracy_drop_amp": (accuracies[0] - accuracies[2]) / accuracies[0] * 100,
     })
 
 
@@ -440,8 +731,8 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     batch_size = 16
     num_workers = 4
-    max_images = 500
-    experiment_name = "ufldv2-mixed-precision-optimization-NVidia-GPU-4070"
+    max_images = None
+    experiment_name = "ufldv2-mixed-precision-with-accuracy"
     
     if not torch.cuda.is_available():
         print("ERROR: CUDA not available. Mixed precision optimization requires GPU.")
@@ -449,16 +740,15 @@ def main():
     
     ckpt_path = UFLD_PATH / "weights" / "tusimple_res18.pth"
     dataset_dir = PROJECT_ROOT / "datasets" / "TUSimple" / "test_set"
-    results_dir = PROJECT_ROOT / "results" / "mixed_precision"
+    label_path = PROJECT_ROOT / "datasets" / "TUSimple" / "test_label.json"
+    results_dir = PROJECT_ROOT / "results" / "mixed_precision_accuracy"
     results_dir.mkdir(parents=True, exist_ok=True)
+    
+    labels_dict = load_tusimple_labels(label_path)
+    
     gpu_info = get_gpu_info()
     system_info = get_system_info()
-    
-    print(f"GPU: {gpu_info['gpu_name']}")
-    print(f"Tensor Cores Available: {gpu_info['tensor_cores_available']}")
-    print(f"CUDA Version: {gpu_info['cuda_version']}\n")
-    
-    # load once to get params
+
     temp_model = build_model(device)
     param_count = sum(p.numel() for p in temp_model.parameters())
     param_size_mb = param_count * 4 / 1024**2
@@ -471,8 +761,6 @@ def main():
         "total_parameters": param_count,
         "model_size_fp32_mb": param_size_mb,
         "model_size_fp16_mb": param_size_mb / 2,
-        "input_height": cfg.train_height,
-        "input_width": cfg.train_width,
     }
     
     wandb.init(
@@ -483,27 +771,26 @@ def main():
             **model_info,
             "batch_size": batch_size,
             "num_workers": num_workers,
-            "max_images": max_images,
-            "device": str(device),
-            "optimization_technique": "mixed_precision_fp16",
+            "optimization_technique": "mixed_precision_with_accuracy",
             "precision_modes_tested": ["fp32", "fp16", "amp"],
             **system_info,
             **gpu_info,
             "dataset": "TuSimple",
+            "evaluate_accuracy": True,
         },
-        tags=["optimization", "mixed-precision", "fp16", "lane-detection"],
-        notes="Optimization Technique 2: Mixed Precision Inference - Comparing FP32, FP16, and AMP"
+        tags=["optimization", "mixed-precision", "accuracy", "lane-detection"],
     )
     
     image_paths = get_image_paths(dataset_dir, max_images)
-    dataset = LaneDataset(image_paths)
+    dataset = LaneDataset(image_paths, labels_dict)
     dataloader = DataLoader(
         dataset, 
         batch_size=batch_size, 
         shuffle=False,
         num_workers=num_workers,
         pin_memory=True,
-        drop_last=False
+        drop_last=False,
+        collate_fn=custom_collate
     )
     
     all_results = {}
@@ -514,18 +801,18 @@ def main():
     print(f"{'#'*60}\n")
     
     model_fp32 = load_model(ckpt_path, device, use_fp16=False)
-    metrics_fp32 = benchmark_inference(
-        model_fp32, dataloader, device, "fp32", batch_size,
+    metrics_fp32, accuracy_fp32 = benchmark_inference(
+        model_fp32, dataloader, device, "fp32", batch_size, labels_dict,
         num_warmup=10, log_frequency=10
     )
-    stats_fp32 = print_results("fp32", metrics_fp32, 
+    stats_fp32 = print_results("fp32", metrics_fp32, accuracy_fp32,
                                save_path=results_dir / "fp32_metrics.json")
     all_results['fp32'] = stats_fp32
     
     wandb.log({
         "summary/fp32_throughput": stats_fp32['throughput']['images_per_second'],
-        "summary/fp32_latency_ms": stats_fp32['inference']['mean_ms'],
-        "summary/fp32_memory_mb": stats_fp32['gpu_memory']['max_allocated_mb'],
+        "summary/fp32_accuracy": accuracy_fp32['accuracy'],
+        "summary/fp32_f1_score": accuracy_fp32['f1_score'],
     })
     
     del model_fp32
@@ -537,19 +824,20 @@ def main():
     print(f"{'#'*60}\n")
     
     model_fp16 = load_model(ckpt_path, device, use_fp16=True)
-    metrics_fp16 = benchmark_inference(
-        model_fp16, dataloader, device, "fp16", batch_size,
+    metrics_fp16, accuracy_fp16 = benchmark_inference(
+        model_fp16, dataloader, device, "fp16", batch_size, labels_dict,
         num_warmup=10, log_frequency=10
     )
-    stats_fp16 = print_results("fp16", metrics_fp16, baseline_stats=stats_fp32,
+    stats_fp16 = print_results("fp16", metrics_fp16, accuracy_fp16, 
+                               baseline_stats=stats_fp32, baseline_accuracy=accuracy_fp32,
                                save_path=results_dir / "fp16_metrics.json")
     all_results['fp16'] = stats_fp16
     
     wandb.log({
         "summary/fp16_throughput": stats_fp16['throughput']['images_per_second'],
-        "summary/fp16_latency_ms": stats_fp16['inference']['mean_ms'],
-        "summary/fp16_memory_mb": stats_fp16['gpu_memory']['max_allocated_mb'],
+        "summary/fp16_accuracy": accuracy_fp16['accuracy'],
         "summary/fp16_speedup": stats_fp16['throughput']['images_per_second'] / stats_fp32['throughput']['images_per_second'],
+        "summary/fp16_accuracy_drop": (accuracy_fp32['accuracy'] - accuracy_fp16['accuracy']) / accuracy_fp32['accuracy'] * 100 if accuracy_fp32['accuracy'] > 0 else 0,
     })
     
     del model_fp16
@@ -560,44 +848,33 @@ def main():
     print("# TEST 3: AUTOMATIC MIXED PRECISION (AMP)")
     print(f"{'#'*60}\n")
     
-    model_amp = load_model(ckpt_path, device, use_fp16=False)  # Keep model in FP32
-    metrics_amp = benchmark_inference(
-        model_amp, dataloader, device, "amp", batch_size,
+    model_amp = load_model(ckpt_path, device, use_fp16=False)
+    metrics_amp, accuracy_amp = benchmark_inference(
+        model_amp, dataloader, device, "amp", batch_size, labels_dict,
         num_warmup=10, log_frequency=10
     )
-    stats_amp = print_results("amp", metrics_amp, baseline_stats=stats_fp32,
+    stats_amp = print_results("amp", metrics_amp, accuracy_amp,
+                             baseline_stats=stats_fp32, baseline_accuracy=accuracy_fp32,
                              save_path=results_dir / "amp_metrics.json")
     all_results['amp'] = stats_amp
-
+    
     wandb.log({
         "summary/amp_throughput": stats_amp['throughput']['images_per_second'],
-        "summary/amp_latency_ms": stats_amp['inference']['mean_ms'],
-        "summary/amp_memory_mb": stats_amp['gpu_memory']['max_allocated_mb'],
+        "summary/amp_accuracy": accuracy_amp['accuracy'],
         "summary/amp_speedup": stats_amp['throughput']['images_per_second'] / stats_fp32['throughput']['images_per_second'],
+        "summary/amp_accuracy_drop": (accuracy_fp32['accuracy'] - accuracy_amp['accuracy']) / accuracy_fp32['accuracy'] * 100 if accuracy_fp32['accuracy'] > 0 else 0,
     })
     
     del model_amp
     torch.cuda.empty_cache()
-
-    print("\nCreating comparison visualizations...")
-    create_comparison_plots(stats_fp32, stats_fp16, stats_amp)
     
-    all_results_path = results_dir / "precision_comparison.json"
+    print("\nCreating comparison visualizations...")
+    create_comparison_plots(all_results)
+    
+    all_results_path = results_dir / "precision_comparison_with_accuracy.json"
     with open(all_results_path, 'w') as f:
         json.dump(all_results, f, indent=2)
     print(f"All results saved to: {all_results_path}\n")
-
-    results_artifact = wandb.Artifact(
-        name=f"{experiment_name}-results",
-        type="results",
-        description="Mixed precision optimization results comparing FP32, FP16, and AMP"
-    )
-    results_artifact.add_file(str(all_results_path))
-    wandb.log_artifact(results_artifact)
-    
-    print(f"\n{'='*60}")
-    print(f"WandB Dashboard: {wandb.run.url}")
-    print(f"{'='*60}\n")
     
     wandb.finish()
 

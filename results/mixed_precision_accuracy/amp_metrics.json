@@ -1,0 +1,42 @@
+{
+  "data_loading": {
+    "mean_ms": 2.7456333433898785,
+    "std_ms": 3.253542264653554,
+    "median_ms": 1.9058000179938972
+  },
+  "inference": {
+    "mean_ms": 32.925126674429826,
+    "std_ms": 61.30929676491293,
+    "min_ms": 14.813599991612136,
+    "max_ms": 261.999900045339,
+    "median_ms": 14.932799967937171,
+    "p95_ms": 95.66155999200393,
+    "p99_ms": 228.7322320346719
+  },
+  "total_pipeline": {
+    "mean_ms": 35.6707600178197,
+    "std_ms": 64.55482177797168,
+    "median_ms": 16.862999997101724
+  },
+  "throughput": {
+    "images_per_second": 477.8518694523988,
+    "batches_per_second": 30.371940855025347,
+    "mean_batch_fps": 30.371940855025347
+  },
+  "gpu_memory": {
+    "mean_allocated_mb": 426.35947265625,
+    "max_allocated_mb": 427.98681640625,
+    "mean_reserved_mb": 886.0,
+    "max_reserved_mb": 886.0
+  },
+  "accuracy": {
+    "accuracy": 0.43478260869565216,
+    "precision": 1.0,
+    "recall": 0.43478260869565216,
+    "f1_score": 0.6060606060606061,
+    "total_gt_lanes": 46,
+    "correct_predictions": 20,
+    "false_positives": 0,
+    "false_negatives": 26
+  }
+}
