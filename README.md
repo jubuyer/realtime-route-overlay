@@ -74,9 +74,9 @@ Realtime-Route-Overlay (top-level)
 	- Jupyter notebooks used for dataset download
 
 - quantization/
-	- Contains artifacts and notebooks related to model quantization and hardware-optimized exports. Example files in this repo:
-		- `Snapdragon_optimized.ipynb` — notebook demonstrating device-specific optimization steps.
-		- `ufldv2_res18_FP32.onnx` — exported ONNX model used as a starting point for quantization/optimization.
+	- Artifacts for INT8 post-training quantization (PTQ) and Snapdragon NPU Evaluation. Files in this repo:
+		- `Snapdragon_optimized.ipynb` — end-to-end Snapdragon workflow: load/export ONNX, run FP32 baseline profiling, run INT8 PTQ (W8A8) + compile, then collect on-device latency/throughput and numeric-drift sanity checks (optionally logs to W&B).
+		- `ufldv2_res18_FP32.onnx` — exported FP32 ONNX model used as the starting point for quantization/compilation.
 
 - results/
 	- Stores processed experiment outputs and figures used for evaluation. Typical subfolders include:
@@ -86,17 +86,17 @@ Realtime-Route-Overlay (top-level)
 
 - scripts/
 	- Main collection of runnable Python scripts and utilities used by the project. Key scripts:
-		- `dataloader.py` — dataset loading utilities and PyTorch dataset/dataloader wrappers.
+		- `dataloader.py` — Loads the raw KITTI images and GPS/IMU sensor data from disk.
 		- `diagnose_import.py` — quick environment / import checks to validate dependencies.
 		- `download_kitti.py` — helper to download KITTI data
-		- `geometry.py` — 
+		- `geometry.py` — The "Math Engine". It calculates how to convert real-world GPS coordinates into 2D pixel coordinates on the screen.
 		- `inference.py` — inference runner for UFLDv2 (single-image inference harness).
 		- `kitti_frames_to_video.py` — converts KITTI frames into a stitched video for visualization/benchmarking.
-		- `main_pipeline.py` — 
-		- `maps_client.py` — 
+		- `main_pipeline.py` — The main startup script that connects all modules and runs the loop for AR navigation.
+		- `maps_client.py` — Connects to Google Maps to get the exact smooth shape of the road (correcting GPS errors).
 		- `preprocess_davis.py` / `preprocess_kitti.py` — dataset-specific preprocessing scripts.
 		- `verify_setup.py` — convenience script to validate that environment, devices, and key files are present.
-		- `visualizer.py` — 
+		- `visualizer.py` — Takes the calculated points and draws the yellow AR line and arrow onto the video.
 	- Additional script folders:
 		- `scripts/benchmark/` — benchmarking helpers and runners used to collect throughput/latency metrics.
 		- `scripts/GPU Provisioning/` — scripts used to provision GPU VMs from edstem
@@ -183,7 +183,7 @@ conda activate motiondet
 wandb login
 ```
 
-1) Verify environment and required files
+#### 1) Verify environment and required files
 
 ```bash
 python scripts/verify_setup.py
@@ -193,7 +193,7 @@ Description: Runs a series of checks to confirm the repository layout, required 
 
 When to run: Right after cloning and installing dependencies, before running experiments.
 
-2) Diagnose UFLDv2 import issues
+#### 2) Diagnose UFLDv2 import issues
 
 ```bash
 python scripts/diagnose_import.py
@@ -203,7 +203,7 @@ Description: Adds the `models/Ultra-Fast-Lane-Detection-v2` folder to `sys.path`
 
 When to run: If `verify_setup.py` reports missing model files or you get import errors when running inference.
 
-3) Single-image inference & visualization
+#### 3) Single-image inference & visualization
 
 ```bash
 python scripts/inference.py
@@ -213,7 +213,7 @@ Description: Runs model inference on a single example image (paths and checkpoin
 
 Notes: The script uses hard-coded `ckpt_path`, `img_path`, and `out_path` variables; edit them in `scripts/inference.py` if you want to run a different image or checkpoint.
 
-4) Baseline benchmark (throughput / latency)
+#### 4) Baseline benchmark (throughput / latency)
 
 ```bash
 python scripts/benchmark/benchmark_baseline.py
@@ -223,7 +223,64 @@ Description: Runs the baseline inference benchmark (default batch_size=1) across
 
 Configuration: Edit variables in the script (e.g., `batch_size`, `num_workers`, `max_images`, `experiment_name`, `ckpt_path`, `dataset_dir`) to tune the run. Ensure `wandb` is configured if you want cloud logging.
 
-5) Batch inference optimization (test multiple batch sizes)
+#### 5) Baseline video pipeline (KITTI RAW, CPU-only)
+
+This is an aside to the baseline image benchmark and is intended for KITTI RAW videos.
+
+First, convert a KITTI RAW drive (image_02 frames) into an .mp4 using the helper script:
+
+```bash
+python datasets/kitti_raw/kitti_frames_to_video.py \
+	--input_dir datasets/kitti_raw/2011_09_26/2011_09_26_drive_0052_sync/image_02 \
+	--output datasets/kitti_raw/2011_09_26/2011_09_26_drive_0052_sync/drive_0052_sync.mp4 \
+	--fps 10
+```
+
+Then run the CPU-only baseline video pipeline:
+
+```bash
+python scripts/benchmark/baseline_video_pipeline.py \
+	--video datasets/kitti_raw/2011_09_26/2011_09_26_drive_0052_sync/drive_0052_sync.mp4 \
+	--checkpoint models/Ultra-Fast-Lane-Detection-v2/weights/tusimple_res18.pth \
+	--benchmark-output logs/benchmarks/baseline_video_results.txt \
+	--output-video results/baseline/drive_0052_baseline_overlay.mp4
+```
+
+Description: Streams frames from a single KITTI RAW video on CPU, runs UFLDv2 inference one frame at a time, and writes timing statistics and an optional overlay video.
+
+Configuration: Adjust `--video`, `--checkpoint`, `--benchmark-output`, and `--output-video` to point to your KITTI drive, weights, and output paths. This script is CPU-only and does not use batching or multiple workers.
+
+#### 6) Optimized video pipeline (KITTI RAW, GPU + num_workers sweep)
+
+This is also an aside to the main image-based benchmark and focuses on a GPU-accelerated, batched video pipeline.
+
+After creating an .mp4 from KITTI frames as in 4.1, run the optimized video pipeline:
+
+```bash
+python scripts/benchmark/optimized_video_pipeline.py \
+	--video datasets/kitti_raw/2011_09_26/2011_09_26_drive_0052_sync/drive_0052_sync.mp4 \
+	--checkpoint models/Ultra-Fast-Lane-Detection-v2/weights/tusimple_res18.pth \
+	--batch-size 8 \
+	--num-workers 4 \
+	--fp16 \
+	--device cuda \
+	--benchmark-output logs/benchmarks/optimized_video_results.txt \
+	--output-video results/mixed_precision/drive_0052_optimized_overlay.mp4
+```
+
+Description: Uses a DataLoader-style video dataset with GPU inference, configurable `batch_size`, `num_workers`, and optional FP16 (`--fp16`) to measure end-to-end video throughput and latency.
+
+Configuration: Tune `--batch-size`, `--num-workers`, `--fp16`, and `--device` (`cuda` vs `cpu`) to explore different video-throughput settings. Enable WandB logging with `--use-wandb`, `--wandb-project`, and `--run-name` if you want experiment tracking.
+
+To sweep over `num_workers` for a small set of KITTI videos, use the helper script:
+
+```bash
+bash scripts/benchmark/run_worker_matrix.sh
+```
+
+This script loops over a list of KITTI RAW .mp4 videos and a set of `num_workers` values, calling `optimized_video_pipeline.py` with `--use-wandb` enabled to help you find a good worker count.
+
+#### 7) Batch inference optimization (test multiple batch sizes)
 
 ```bash
 python scripts/simple_optimization/batch_inference_optimization.py
@@ -233,7 +290,7 @@ Description: Iterates over a set of batch sizes (default `[1, 4, 8, 16, 32]`), m
 
 Configuration: Modify `batch_sizes_to_test`, `num_workers`, `max_images`, and `ckpt_path` inside the script to control which batch sizes and dataset to benchmark.
 
-6) Mixed-precision optimization (FP16 / AMP)
+#### 8) Mixed-precision optimization (FP16 / AMP)
 
 ```bash
 python scripts/simple_optimization/mixed_precision_optimization.py
@@ -242,6 +299,46 @@ python scripts/simple_optimization/mixed_precision_optimization.py
 Description: Runs precision comparison tests: FP32 baseline, native FP16 (model.half()), and Automatic Mixed Precision (AMP). Measures throughput, memory, and TuSimple-style accuracy (if labels are available). Results and accuracy summaries are saved to `results/` and logged to WandB.
 
 Configuration: The script expects TuSimple labels (for accuracy) and allows configuring `batch_size`, `max_images`, and the label path near the top of the file. Edit those variables if your dataset layout differs.
+
+#### 9) INT8 PTQ on Snapdragon NPU (Qualcomm AI Hub)
+
+Run the Snapdragon PTQ + Evaluation notebook (Snapdragon_optimized.ipynb). This requires a Qualcomm AI Hub API token and access to a Snapdragon device target in AI Hub.
+
+#### 10) AR navigation pipeline
+   
+Prerequisites
+
+Before running the pipeline, ensure your Google Maps API Key is set in the `.env` file:
+```bash
+GOOGLE_MAPS_API_KEY=your_api_key_here
+```
+
+Basic Execution
+
+Run the pipeline in default mode (projects 50m ahead).
+```bash
+# Syntax: python scripts/main_pipeline.py [DRIVE_ID]
+python scripts/main_pipeline.py 2011_10_03_0042
+```
+
+Target Mode (Navigation)
+
+Run the pipeline with a specific destination coordinate.
+```bash
+# Syntax: python scripts/main_pipeline.py [DRIVE_ID] --target "LAT,LON"
+python scripts/main_pipeline.py 2011_09_30_0016 --target "49.0340,8.3950"
+```
+
+Common Options
+
+*   `-n [NUMBER]`: Number of frames to process (Default: 10).
+*   `--output [FILENAME]`: Name of the output video file (Default: `output_video.mp4`).
+
+**Example: Process 200 frames and save to `demo.mp4`**
+```bash
+python scripts/main_pipeline.py 2011_10_03_0042 -n 200 --output demo.mp4
+```
+
 
 ## 4. Results
 
