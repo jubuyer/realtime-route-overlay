@@ -242,7 +242,11 @@ Description: Runs precision comparison tests: FP32 baseline, native FP16 (model.
 
 Configuration: The script expects TuSimple labels (for accuracy) and allows configuring `batch_size`, `max_images`, and the label path near the top of the file. Edit those variables if your dataset layout differs.
 
-7) AR navigation pipeline
+7) INT8 PTQ on Snapdragon NPU (Qualcomm AI Hub)
+
+Run the Snapdragon PTQ + Evaluation notebook (Snapdragon_optimized.ipynb). This requires a Qualcomm AI Hub API token and access to a Snapdragon device target in AI Hub.
+
+8) AR navigation pipeline
    
 Prerequisites
 
