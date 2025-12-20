@@ -159,11 +159,13 @@ Please run
 Please download the model weights and place them in the correct repository (instructions below)
 
 **Available Models:**
-- `tusimple_res18.pth` - ResNet-18 backbone (faster, ~11M parameters)
-- `tusimple_res34.pth` - ResNet-34 backbone (more accurate, ~21M parameters)
+- `tusimple_res18.pth` - ResNet-18 backbone (faster, \~11M parameters)
+- `tusimple_res34.pth` - ResNet-34 backbone (more accurate, \~21M parameters)
 
 **Download:**
+
 Model weights are available for download on the [model repo](https://github.com/cfzd/Ultra-Fast-Lane-Detection-v2) under trained model section. Please drag the downloaded weights to `models/Ultra-Fast-Lane-Detection-v2/weights/`.
+
 ---
 
 ### List of Commands
