@@ -243,13 +243,16 @@ Description: Runs precision comparison tests: FP32 baseline, native FP16 (model.
 Configuration: The script expects TuSimple labels (for accuracy) and allows configuring `batch_size`, `max_images`, and the label path near the top of the file. Edit those variables if your dataset layout differs.
 
 7) AR navigation pipeline
+   
 Prerequisites
+
 Before running the pipeline, ensure your Google Maps API Key is set in the `.env` file:
 ```bash
 GOOGLE_MAPS_API_KEY=your_api_key_here
 ```
 
 Basic Execution
+
 Run the pipeline in default mode (projects 50m ahead).
 ```bash
 # Syntax: python scripts/main_pipeline.py [DRIVE_ID]
@@ -257,6 +260,7 @@ python scripts/main_pipeline.py 2011_10_03_0042
 ```
 
 Target Mode (Navigation)
+
 Run the pipeline with a specific destination coordinate.
 ```bash
 # Syntax: python scripts/main_pipeline.py [DRIVE_ID] --target "LAT,LON"
@@ -264,6 +268,7 @@ python scripts/main_pipeline.py 2011_09_30_0016 --target "49.0340,8.3950"
 ```
 
 Common Options
+
 *   `-n [NUMBER]`: Number of frames to process (Default: 10).
 *   `--output [FILENAME]`: Name of the output video file (Default: `output_video.mp4`).
 
