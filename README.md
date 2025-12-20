@@ -242,7 +242,50 @@ Description: Runs precision comparison tests: FP32 baseline, native FP16 (model.
 
 Configuration: The script expects TuSimple labels (for accuracy) and allows configuring `batch_size`, `max_images`, and the label path near the top of the file. Edit those variables if your dataset layout differs.
 
----
 ## 4. Results
+
+We evaluated three complementary optimization strategies for UFLDv2 inference: batch inference on GPU, mixed-precision inference on GPU, and INT8 post-training quantization (PTQ) on a mobile NPU. Across all experiments, we observe clear trade-offs between latency, throughput, memory footprint, and deployment constraints.
+
+### Optimization 1: Batch Inference (GPU)
+
+Batching significantly improves throughput by amortizing kernel launch and memory access overheads. Increasing the batch size from 1 to 4 yields a 2.07× throughput improvement (202.17 → 418.50 img/s) while reducing per-image latency (4.95 ms → 2.39 ms). Throughput peaks at batch sizes 4 and 16 (≈418 img/s), indicating near-optimal GPU utilization in this range. Beyond batch size 16, throughput declines due to increased memory pressure, with batch size 32 showing higher latency, reduced throughput, and substantially higher GPU memory usage.
+
+| Batch Size | Mean (ms) | Median (ms) | Std Dev (ms) | P95 (ms) | Throughput (img/s) | Speedup (×) | GPU Mem (MB) |
+|------------|-----------|-------------|--------------|----------|--------------------|-------------|--------------|
+| 1  | 4.95 | 3.53 | 12.17 | 5.72 | 202.17 | 1.00 | 380.99 |
+| 4  | 9.56 | 6.20 | 23.98 | 10.07 | 418.50 | 2.07 | 390.23 |
+| 8  | 21.44 | 12.15 | 48.70 | 16.05 | 366.85 | 1.81 | 403.35 |
+| 16 | 37.58 | 25.01 | 36.83 | 96.71 | 418.71 | 2.07 | 427.20 |
+| 32 | 75.48 | 49.65 | 80.76 | 205.35 | 390.84 | 1.93 | 478.44 |
+
+### Optimization 2: Mixed-Precision Inference (GPU, Batch = 16)
+
+Mixed precision improves performance without sacrificing accuracy. Native FP16 delivers a 1.28× throughput increase over FP32 (370.66 → 474.43 img/s) while reducing peak GPU memory usage by 48.7%. AMP achieves the highest throughput (1.29× speedup) but provides negligible memory savings, as parameters remain in FP32. All precision modes yield identical accuracy and F1 scores, confirming numerical robustness.
+
+| Metric | FP32 | FP16 | AMP |
+|-------|------|------|-----|
+| Mean Latency (ms) | 42.45 | 33.16 | 32.93 |
+| P95 Latency (ms)  | 112.23 | 97.79 | 95.66 |
+| Throughput (img/s) | 370.66 | 474.43 | 477.85 |
+| Speedup vs FP32 | 1.00× | 1.28× | 1.29× |
+| Peak GPU Mem (MB) | 429.15 | 220.32 | 427.99 |
+| Accuracy | 0.4348 | 0.4348 | 0.4348 |
+| F1 Score | 0.6061 | 0.6061 | 0.6061 |
+
+### Optimization 3: INT8 PTQ on Snapdragon NPU
+
+INT8 PTQ enables efficient edge deployment. On a Snapdragon-8 Gen 3 NPU, INT8 reduces mean latency by 65% (5.47 → 1.92 ms), yielding a 2.86× speedup and a 185.5% throughput increase. Model size is reduced by 58.5%, improving deployability on mobile devices. Output drift remains minimal (cosine similarity 0.996), indicating that aggressive quantization preserves numerical fidelity.
+
+| Metric | FP32 | INT8 | Change |
+|------|------|------|--------|
+| Mean Latency (ms) | 5.47 | 1.92 | −65.0% |
+| P95 Latency (ms) | 5.55 | 1.97 | −64.5% |
+| Throughput (img/s) | 182.7 | 521.7 | +185.5% |
+| Model Size (MB) | 367.70 | 152.53 | −58.5% |
+| Cosine Similarity (FP32 vs INT8) | — | 0.996 | — |
+
+### Overall Takeaway
+
+Batching and mixed precision are effective for maximizing GPU throughput, with batch sizes 4–16 and native FP16 offering the best balance of speed and memory efficiency. For edge deployment, INT8 PTQ provides the largest gains in latency, throughput, and model size with minimal numerical drift, making it the most suitable configuration for real-time AR lane overlay on mobile hardware.
 
 ---
