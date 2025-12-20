@@ -8,10 +8,14 @@
 
 **Institution:** Columbia University  
 
+**Wandb Dashboard**
+
+View training and evaluation metrics here: https://wandb.ai/hpmlcoms6998-columbia-university/ufldv2-optimization
+
 ---
 
-## 1. Problem Statement
-In this work, we frame the problem as an optimization
+## 0. Problem Statement
+In this work, we frame the idea of GPS Path Project on AR overlay as an optimization
 challenge: how to improve the throughput and latency of a
 lane-detection-based AR pipeline while preserving geometric
 accuracy. Rather than focusing on training novel models,
@@ -19,16 +23,18 @@ we target system-level optimizations, including data loading,
 batching, and inference execution, to enable scalable, real-time
 AR navigation suitable for high-volume video processing.
 
+## 1. Project Description
+This repo contains a system-level optimization of Ultra Fast Lane Detection v2 (UFLDv2) for Augmented Reality (AR) navigation pipelines. We implement and evaluate a series of performance optimizations, including batch inference, mixed precision execution, and post-training quantization, to accelerate lane detection on GPU hardware while preserving geometric accuracy. Using high resolution driving data from KITTI dataset, we integrate the AR navigation pipeline that projects routes onto vehicle camera feeds. The system implements a comprehensive coordinate transformation pipeline that converts WGS84 coordinates to the 2D image plane, taking into account vehicle dynamics (Yaw, Pitch, Roll) and sensor calibration.
+
 ---
 
-## 2. Model Description
 ### Base Model: Ultra Fast Lane Detection v2
 
 ### What is UFLDv2?
 Ultra Fast Lane Detection v2 is a state-of-the-art lane detection model that reformulates lane detection as a row-wise classification problem rather than traditional pixel-wise segmentation. This approach significantly reduces computational cost while maintaining high accuracy.
 
 **Key Features:**
-- **Fast**: Achieves 300+ FPS on high-end GPUs
+- **Fast**: Achieves 200+ FPS on high-end GPUs
 - **Accurate**: Competitive F1 scores on TuSimple and CULane benchmarks
 - **Efficient**: Lightweight architecture suitable for real-time applications
 - **Row-based Selection**: Uses global image features for efficient lane prediction
@@ -44,16 +50,10 @@ Ultra Fast Lane Detection v2 is a state-of-the-art lane detection model that ref
 - **Parameters**: ~11M (ResNet-18), ~21M (ResNet-34)
 
 ---
+## 2. Repository Outline
 
-## 3. Final Results Summary
-
----
-
-## 4. Reproducibility Instructions
-
-### A. Requirements
-
-#### Environment Setup
+## 3. Set Up Instructions and Commands
+### Environment Setup
 ```bash
 git clone https://github.com/jubuyer/realtime-route-overlay.git
 cd realtime-route-overlay
@@ -68,7 +68,7 @@ pip install -r configs/requirements.txt
 wandb login
 ```
 
-#### Dataset Setup
+### Dataset Setup
 
 #### TuSimple Dataset
 The TuSimple dataset contains highway driving scenarios with lane annotations.
@@ -94,7 +94,7 @@ data/tusimple/
 #### KITTI Raw Suite
 The KITTI Raw Road dataset was used to benchmark inference. Accessing this dataset requires an official account.
 
-#### Pretrained Model Weights
+### Pretrained Model Weights
 
 **Available Models:**
 - `tusimple_res18.pth` - ResNet-18 backbone (faster, ~11M parameters)
@@ -103,9 +103,8 @@ The KITTI Raw Road dataset was used to benchmark inference. Accessing this datas
 **Download:**
 Model weights are available for download on the [model repo](https://github.com/cfzd/Ultra-Fast-Lane-Detection-v2) under trained model section.
 ---
+### List of Commands
 
-### B. Wandb Dashboard
-
-View training and evaluation metrics here: https://wandb.ai/hpmlcoms6998-columbia-university/ufldv2-optimization
+## 4. Results
 
 ---
